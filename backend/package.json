@@ -7,7 +7,8 @@
   "scripts": {
   "dev": "nodemon -r dotenv/config src/index.js",
   "start": "node -r dotenv/config src/index.js",
-  "format": "prettier --write ."
+  "format": "prettier --write .",
+  "migrate": "node -r dotenv/config src/db/runMigrations.js"
 },
   "keywords": [],
   "author": "",
