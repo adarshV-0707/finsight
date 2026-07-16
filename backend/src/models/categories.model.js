@@ -1,78 +1,68 @@
 import { pool } from "../db/pool.js";
 
-export const createCategory = async ({
-  userId,
-  name,
-  type,
-  color,
-  icon,
-}) => {
+const insertCategory = async ({ userId, name, type }) => {
   const query = `
     INSERT INTO categories (
       user_id,
       name,
-      type,
-      color,
-      icon
+      type
     )
-    VALUES ($1, $2, $3, $4, $5)
+    VALUES ($1, $2, $3)
     RETURNING
       id,
       user_id,
       name,
       type,
-      color,
-      icon,
       is_active,
       created_at,
       updated_at
   `;
 
-  const values = [
+  const result = await pool.query(query, [
     userId,
     name,
     type,
-    color ?? null,
-    icon ?? null,
-  ];
-
-  const result = await pool.query(query, values);
+  ]);
 
   return result.rows[0];
 };
 
-export const findCategoriesByUserId = async (userId) => {
-  const query = `
+const findCategoriesByUserId = async (userId, type) => {
+  let query = `
     SELECT
       id,
       user_id,
       name,
       type,
-      color,
-      icon,
       is_active,
       created_at,
       updated_at
     FROM categories
     WHERE user_id = $1
       AND is_active = true
-    ORDER BY created_at DESC
   `;
 
-  const result = await pool.query(query, [userId]);
+  const values = [userId];
+
+  if (type) {
+    query += ` AND type = $2`;
+    values.push(type);
+  }
+
+  query += ` ORDER BY created_at DESC`;
+
+  const result = await pool.query(query, values);
 
   return result.rows;
 };
 
-export const findCategoryById = async (categoryId, userId) => {
+const findCategoryById = async (categoryId, userId) => {
   const query = `
     SELECT
       id,
       user_id,
       name,
       type,
-      color,
-      icon,
       is_active,
       created_at,
       updated_at
@@ -82,78 +72,67 @@ export const findCategoryById = async (categoryId, userId) => {
       AND is_active = true
   `;
 
-  const result = await pool.query(query, [categoryId, userId]);
+  const result = await pool.query(query, [
+    categoryId,
+    userId,
+  ]);
 
   return result.rows[0] || null;
 };
 
-export const updateCategoryById = async ({
+const updateCategoryById = async (
   categoryId,
   userId,
-  name,
-  type,
-  color,
-  icon,
-}) => {
+  updates,
+) => {
+  const fieldMap = {
+    name: "name",
+    type: "type",
+  };
+
+  const setClauses = [];
+  const values = [];
+
+  Object.entries(updates).forEach(([field, value]) => {
+    const column = fieldMap[field];
+
+    if (column) {
+      values.push(value);
+      setClauses.push(`${column} = $${values.length}`);
+    }
+  });
+
+  values.push(categoryId, userId);
+
+  const categoryIdPosition = values.length - 1;
+  const userIdPosition = values.length;
+
   const query = `
     UPDATE categories
     SET
-      name = $1,
-      type = $2,
-      color = $3,
-      icon = $4,
+      ${setClauses.join(", ")},
       updated_at = NOW()
-    WHERE id = $5
-      AND user_id = $6
+    WHERE id = $${categoryIdPosition}
+      AND user_id = $${userIdPosition}
       AND is_active = true
     RETURNING
       id,
       user_id,
       name,
       type,
-      color,
-      icon,
       is_active,
       created_at,
       updated_at
   `;
-
-  const values = [
-    name,
-    type,
-    color ?? null,
-    icon ?? null,
-    categoryId,
-    userId,
-  ];
 
   const result = await pool.query(query, values);
 
   return result.rows[0] || null;
 };
 
-export const deactivateCategoryById = async (categoryId, userId) => {
-  const query = `
-    UPDATE categories
-    SET
-      is_active = false,
-      updated_at = NOW()
-    WHERE id = $1
-      AND user_id = $2
-      AND is_active = true
-    RETURNING
-      id,
-      user_id,
-      name,
-      type,
-      color,
-      icon,
-      is_active,
-      created_at,
-      updated_at
-  `;
-
-  const result = await pool.query(query, [categoryId, userId]);
-
-  return result.rows[0] || null;
+export {
+  insertCategory,
+  findCategoriesByUserId,
+  findCategoryById,
+  updateCategoryById,
 };
