@@ -16,7 +16,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 const createCategory = asyncHandler(async (req, res) => {
-  const { error, data } = validateCreateCategory(req.body);
+  
+    const { error, data } = validateCreateCategory(req.body);
 
   if (error) {
     throw new ApiError(400, error);
