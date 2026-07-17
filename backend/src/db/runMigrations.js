@@ -17,10 +17,12 @@ async function runMigrations() {
     `);
 
     const executedResult = await client.query(
-      `SELECT filename FROM migrations_log`
+      `SELECT filename FROM migrations_log`,
     );
 
-    const executed = new Set(executedResult.rows.map((row) => row.filename));
+    const executed = new Set(
+      executedResult.rows.map((row) => row.filename),
+    );
 
     const files = fs
       .readdirSync(MIGRATIONS_DIR)
@@ -42,10 +44,12 @@ async function runMigrations() {
 
       try {
         await client.query(sql);
+
         await client.query(
           `INSERT INTO migrations_log (filename) VALUES ($1)`,
-          [file]
+          [file],
         );
+
         await client.query("COMMIT");
 
         console.log(`Completed migration: ${file}`);
@@ -62,7 +66,7 @@ async function runMigrations() {
   }
 }
 
-runMigrations().catch((err) => {
-  console.error("Migration failed:", err);
+runMigrations().catch((error) => {
+  console.error("Migration failed:", error);
   process.exit(1);
 });
