@@ -1,15 +1,15 @@
-import { asyncHandler } from "../utils/AsyncHandler.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { ApiError } from "../utils/ApiError.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+
 import {
   createUser,
   findUserByEmail,
   findUserWithRefreshTokenById,
   updateUserRefreshToken,
 } from "../models/user.model.js";
-import bcrypt from "bcrypt";
+import { asyncHandler } from "../utils/AsyncHandler.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { ApiError } from "../utils/ApiError.js";
 
 const generateAccessAndRefreshTokens = async (user) => {
   try {
@@ -84,7 +84,10 @@ const registerUser = asyncHandler(async (req, res) => {
   const existedUser = await findUserByEmail(normalizedEmail);
 
   if (existedUser) {
-    throw new ApiError(409, "User with this email already exists");
+    throw new ApiError(
+      409,
+      "User with this email already exists",
+    );
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -106,7 +109,6 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 });
 
-
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -115,7 +117,10 @@ const loginUser = asyncHandler(async (req, res) => {
       (field) => !field || field.trim() === "",
     )
   ) {
-    throw new ApiError(400, "Email and password are required");
+    throw new ApiError(
+      400,
+      "Email and password are required",
+    );
   }
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -148,7 +153,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production"
+    secure: process.env.NODE_ENV === "production",
   };
 
   return res
@@ -184,7 +189,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       process.env.REFRESH_TOKEN_SECRET,
     );
   } catch {
-    throw new ApiError(401, "Invalid or expired refresh token");
+    throw new ApiError(
+      401,
+      "Invalid or expired refresh token",
+    );
   }
 
   const user = await findUserWithRefreshTokenById(
@@ -207,15 +215,19 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     refreshToken: newRefreshToken,
   } = await generateAccessAndRefreshTokens(user);
 
-  const options = {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
   };
 
   return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", newRefreshToken, options)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .cookie(
+      "refreshToken",
+      newRefreshToken,
+      cookieOptions,
+    )
     .json(
       new ApiResponse(
         200,
@@ -231,15 +243,15 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 const logoutUser = asyncHandler(async (req, res) => {
   await updateUserRefreshToken(req.user.id, null);
 
-  const options = {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
   };
 
   return res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", cookieOptions)
+    .clearCookie("refreshToken", cookieOptions)
     .json(
       new ApiResponse(
         200,
@@ -260,3 +272,11 @@ const getCurrentUser = asyncHandler(async (req, res) => {
       ),
     );
 });
+
+export {
+  registerUser,
+  loginUser,
+  refreshAccessToken,
+  logoutUser,
+  getCurrentUser,
+};
